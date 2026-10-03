@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sentinel AI — Dataset Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#131b30;--line:#293653;--text:#edf2ff;--muted:#aab6d0;--accent:#76a9ff;--good:#8be0b1}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#182747,var(--bg) 55%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1100px;margin:auto;padding:32px 20px 60px}h1{font-size:clamp(2rem,5vw,3.2rem);margin:0}h2{font-size:1.15rem;margin:0 0 12px}.sub{color:var(--muted);margin:4px 0 24px}
+.panel{background:rgba(19,27,48,.94);border:1px solid var(--line);border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 12px 40px #0002}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}.tabs button,button{border:1px solid var(--line);border-radius:10px;background:#1b2945;color:var(--text);padding:10px 14px;font:inherit;cursor:pointer}.tabs button[aria-selected=true],button.primary{background:#2c5595;border-color:#5489d6}.tabs button:hover,button:hover{filter:brightness(1.15)}
+label{display:block;font-weight:600;margin:12px 0 6px}input,select,textarea{width:100%;background:#0d1528;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px;font:inherit}input[type=file]{padding:9px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.muted{color:var(--muted)}.status{padding:10px 12px;border-radius:9px;background:#0d1528;border:1px solid var(--line);white-space:pre-wrap}.status.good{color:var(--good)}.status.error{color:#ffb2b2}
+.preview{overflow:auto;max-height:330px;margin-top:12px}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:7px 10px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}th{position:sticky;top:0;background:#202d49}
+.metric{font-size:1.8rem;font-weight:700;color:var(--good)}.hidden{display:none}.note{font-size:13px;color:var(--muted)}.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted);font-size:12px}
+footer{color:var(--muted);font-size:13px;margin-top:24px}
+</style>
+</head>
+<body>
+<main>
+  <span class="pill">Browser-based prototype</span>
+  <h1>🧠 Sentinel AI</h1>
+  <p class="sub">Explore your data and experiment with a simple trainable model.</p>
+
+  <section class="panel">
+    <h2>Choose a workspace</h2>
+    <div class="tabs" role="tablist" aria-label="Workspace">
+      <button role="tab" aria-selected="true" data-tab="explore">Explore data</button>
+      <button role="tab" aria-selected="false" data-tab="train">Train tabular AI</button>
+      <button role="tab" aria-selected="false" data-tab="text">Text classifier</button>
+      <button role="tab" aria-selected="false" data-tab="images">Inspect images</button>
+    </div>
+  </section>
+
+  <section id="explore" class="panel workspace">
+    <h2>Dataset explorer</h2>
+    <p class="muted">Load a CSV file from your device. Data stays in this browser tab.</p>
+    <label for="csvExplore">CSV dataset</label><input id="csvExplore" type="file" accept=".csv,text/csv">
+    <div id="exploreResult" class="muted" aria-live="polite">No dataset loaded.</div>
+    <div id="explorePreview" class="preview"></div>
+  </section>
+
+  <section id="train" class="panel workspace hidden">
+    <h2>Train a small tabular classifier</h2>
+    <p class="muted">This demo uses a decision stump trained with a simple Gini-based split. It supports numeric input columns and categorical target labels. It is educational, not a replacement for the Python model.</p>
+    <label for="csvTrain">CSV dataset</label><input id="csvTrain" type="file" accept=".csv,text/csv">
+    <div id="trainFields" class="hidden">
+      <label for="target">Target column (the answer to predict)</label><select id="target"></select>
+      <label for="feature">Input feature</label><select id="feature"></select>
+      <button class="primary" id="trainButton">Train model</button>
+    </div>
+    <div id="trainResult" class="status" aria-live="polite">Choose a CSV to begin.</div>
+    <div id="predictArea" class="hidden">
+      <h2 style="margin-top:18px">Try a prediction</h2>
+      <label for="predictValue">Feature value</label><input id="predictValue" type="number" step="any">
+      <button id="predictButton">Predict</button>
+      <p id="prediction" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section id="text" class="panel workspace hidden">
+    <h2>Text classifier</h2>
+    <p class="muted">A lightweight keyword-baseline demo. It learns which words appear in each label's examples. For robust text training, use the Python/ML version.</p>
+    <label for="textCsv">CSV with a text column and label column</label><input id="textCsv" type="file" accept=".csv,text/csv">
+    <div id="textFields" class="hidden">
+      <div class="row">
+        <div><label for="textColumn">Text column</label><select id="textColumn"></select></div>
+        <div><label for="labelColumn">Label column</label><select id="labelColumn"></select></div>
+      </div>
+      <button class="primary" id="textTrainButton">Learn from examples</button>
+      <div id="textTestArea" class="hidden">
+        <label for="textInput">Enter text to classify</label><textarea id="textInput" rows="3" placeholder="Type a sentence..."></textarea>
+        <button id="textPredictButton">Classify text</button>
+      </div>
+    </div>
+    <div id="textResult" class="status" aria-live="polite">Choose a CSV to begin.</div>
+  </section>
+
+  <section id="images" class="panel workspace hidden">
+    <h2>Image dataset inspector</h2>
+    <p class="muted">Preview image files and inspect their dimensions. This workspace does not train an image model yet.</p>
+    <label for="imageFiles">Choose images</label><input id="imageFiles" type="file" accept="image/*" multiple>
+    <div id="imageResult" class="row" aria-live="polite"></div>
+  </section>
+  <footer>Sentinel AI prototype · Local browser processing · No files are uploaded to a server</footer>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let exploreRows=[], trainRows=[], stump=null, textModel=null;
+function parseCSV(text){
+  const rows=[];let row=[],cell="",quoted=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i],n=text[i+1];
+    if(quoted){if(c==='"'&&n==='"'){cell+='"';i++}else if(c==='"')quoted=false;else cell+=c}
+    else if(c==='"')quoted=true;
+    else if(c===","){row.push(cell);cell=""}
+    else if(c==="\n"){row.push(cell.replace(/\r$/,""));rows.push(row);row=[];cell=""}
+    else cell+=c;
+  }
+  if(cell.length||row.length){row.push(cell.replace(/\r$/,""));rows.push(row)}
+  if(rows.length<2)throw Error("CSV needs a header and at least one data row.");
+  const headers=rows.shift().map(x=>x.trim());
+  if(headers.some(x=>!x))throw Error("Column names cannot be blank.");
+  return rows.filter(r=>r.some(x=>x.trim()!=="")).map(r=>Object.fromEntries(headers.map((h,i)=>[h,(r[i]??"").trim()])));
+}
+function showTable(rows,host){
+  if(!rows.length){host.innerHTML="";return}
+  const cols=Object.keys(rows[0]);
+  const table=document.createElement("table");
+  table.innerHTML="<thead><tr>"+cols.map(c=>`<th>${escapeHTML(c)}</th>`).join("")+"</tr></thead>";
+  const body=document.createElement("tbody");
+  rows.slice(0,20).forEach(r=>{const tr=document.createElement("tr");tr.innerHTML=cols.map(c=>`<td title="${escapeHTML(r[c])}">${escapeHTML(r[c])}</td>`).join("");body.appendChild(tr)});
+  table.appendChild(body);host.replaceChildren(table);
+}
+function escapeHTML(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function loadCSV(file){return parseCSV(await file.text())}
+function setupTabs(){
+ document.querySelectorAll("[data-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected",String(b===btn)));
+  document.querySelectorAll(".workspace").forEach(s=>s.classList.toggle("hidden",s.id!==btn.dataset.tab));
+ }));
+}
+setupTabs();
+$("csvExplore").addEventListener("change",async e=>{
+ const host=$("exploreResult"),preview=$("explorePreview");preview.innerHTML="";
+ try{exploreRows=await loadCSV(e.target.files[0]);host.textContent=`Loaded ${exploreRows.length} rows and ${Object.keys(exploreRows[0]).length} columns.`;showTable(exploreRows,preview)}
+ catch(err){host.textContent=err.message}
+});
+$("csvTrain").addEventListener("change",async e=>{
+ try{
+  trainRows=await loadCSV(e.target.files[0]);const cols=Object.keys(trainRows[0]);
+  $("target").innerHTML=cols.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join("");
+  $("feature").innerHTML=cols.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join("");
+  if(cols.length>1)$("feature").value=cols.find(c=>c!==cols[0])||cols[0];
+  $("trainFields").classList.remove("hidden");$("trainResult").textContent=`Loaded ${trainRows.length} rows. Choose the target and feature, then train.`;
+ }catch(err){$("trainResult").textContent=err.message}
+});
+function gini(labels){
+ const counts={};labels.forEach(x=>counts[x]=(counts[x]||0)+1);
+ return 1-Object.values(counts).reduce((s,n)=>s+(n/labels.length)**2,0);
+}
+$("trainButton").addEventListener("click",()=>{
+ const target=$("target").value,feature=$("feature").value;
+ const data=trainRows.filter(r=>r[target]!==""&&r[feature]!==""&&Number.isFinite(Number(r[feature])));
+ if(data.length<4){$("trainResult").textContent="Need at least four rows with numeric feature values and labels.";return}
+ const values=[...new Set(data.map(r=>Number(r[feature])))].sort((a,b)=>a-b);
+ if(values.length<2){$("trainResult").textContent="The selected feature needs at least two distinct numeric values.";return}
+ const labels=data.map(r=>r[target]),unique=[...new Set(labels)];
+ if(unique.length<2){$("trainResult").textContent="The target needs at least two classes.";return}
+ let best=null;
+ for(let i=0;i<values.length-1;i++){
+  const threshold=(values[i]+values[i+1])/2;
+  const left=data.filter(r=>Number(r[feature])<=threshold),right=data.filter(r=>Number(r[feature])>threshold);
+  const score=(left.length*gini(left.map(r=>r[target]))+right.length*gini(right.map(r=>r[target])))/data.length;
+  if(!best||score<best.score)best={threshold,score,left,right};
+ }
+ const majority=arr=>{const counts={};arr.forEach(r=>counts[r[target]]=(counts[r[target]]||0)+1);return Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0]};
+ stump={feature,target,threshold:best.threshold,left:majority(best.left),right:majority(best.right)};
+ const correct=data.filter(r=>(Number(r[feature])<=stump.threshold?stump.left:stump.right)===r[target]).length;
+ $("trainResult").innerHTML=`<span class="good">Training complete (simple decision stump).</span>\nSplit: ${escapeHTML(feature)} ≤ ${stump.threshold.toFixed(4)}\nLeft predicts: ${escapeHTML(stump.left)}\nRight predicts: ${escapeHTML(stump.right)}\nTraining accuracy: ${(100*correct/data.length).toFixed(1)}% (${correct}/${data.length})\n\nNote: this is training accuracy, not an independent test score.`;
+ $("predictArea").classList.remove("hidden");$("predictValue").value=stump.threshold;
+});
+$("predictButton").addEventListener("click",()=>{
+ if(!stump)return;const x=Number($("predictValue").value);
+ $("prediction").textContent=Number.isFinite(x)?`Prediction: ${x<=stump.threshold?stump.left:stump.right}`:"Enter a valid number.";
+});
+$("textCsv").addEventListener("change",async e=>{
+ try{
+  const rows=await loadCSV(e.target.files[0]);trainRows=rows;const cols=Object.keys(rows[0]);
+  $("textColumn").innerHTML=cols.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join("");
+  $("labelColumn").innerHTML=cols.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join("");
+  if(cols.length>1)$("labelColumn").value=cols[1];
+  $("textFields").classList.remove("hidden");$("textResult").textContent=`Loaded ${rows.length} rows. Select the text and label columns.`;
+ }catch(err){$("textResult").textContent=err.message}
+});
+$("textTrainButton").addEventListener("click",()=>{
+ const tc=$("textColumn").value,lc=$("labelColumn").value;
+ const rows=trainRows.filter(r=>r[tc]&&r[lc]);
+ const vocab={};
+ rows.forEach(r=>{const label=r[lc];vocab[label]??={};String(r[tc]).toLowerCase().match(/[a-z0-9]+/g)?.forEach(w=>vocab[label][w]=(vocab[label][w]||0)+1)});
+ if(Object.keys(vocab).length<2){$("textResult").textContent="Need at least two distinct labels and nonempty examples.";return}
+ textModel=vocab;$("textTestArea").classList.remove("hidden");
+ $("textResult").textContent=`Learned word counts from ${rows.length} labeled examples across ${Object.keys(vocab).length} classes. This is a basic keyword baseline, not a neural network.`;
+});
+$("textPredictButton").addEventListener("click",()=>{
+ if(!textModel)return;
+ const words=$("textInput").value.toLowerCase().match(/[a-z0-9]+/g)||[];
+ const labels=Object.keys(textModel);let best=labels[0],bestScore=-Infinity;
+ labels.forEach(label=>{
+  const counts=textModel[label],total=Object.values(counts).reduce((a,b)=>a+b,0),vocabSize=new Set(labels.flatMap(l=>Object.keys(textModel[l]))).size;
+  let score=Math.log(1/labels.length);
+  words.forEach(w=>score+=Math.log(((counts[w]||0)+1)/(total+vocabSize)));
+  if(score>bestScore){bestScore=score;best=label}
+ });
+ $("textResult").textContent=`Predicted label: ${best}`;
+});
+$("imageFiles").addEventListener("change",e=>{
+ const host=$("imageResult");host.innerHTML="";
+ [...e.target.files].slice(0,30).forEach(file=>{
+  const card=document.createElement("div");card.className="panel";
+  const img=document.createElement("img");img.alt=file.name;img.style.cssText="max-width:100%;max-height:180px;display:block;margin:auto";
+  const info=document.createElement("p");info.className="note";info.textContent=file.name;
+  const dims=document.createElement("p");dims.className="note";dims.textContent="Reading dimensions…";
+  img.onload=()=>dims.textContent=`${img.naturalWidth} × ${img.naturalHeight}px`;
+  img.src=URL.createObjectURL(file);card.append(img,info,dims);host.append(card);
+ });
+});
+</script>
+</body>
+</html>
